@@ -12,19 +12,17 @@ The example uses the most recent data from [Real Earth](http://realearth.ssec.wi
 
 ### Installation
 
-Install the Mapbox SceneKit using [Carthage](https://github.com/Carthage/Carthage/):
-
 1. Clone this repo.
 
-1. Run `carthage update --platform iOS` to build the iOS dependencies.
+1. Open `mapbox-volumes.xcodeproj` in Xcode and select the **mapbox-volumes** scheme.
 
-1. Follow instructions 3-5 of [Carthage’s iOS integration instructions](https://github.com/Carthage/Carthage#if-youre-building-for-ios-tvos-or-watchos). Your application target’s Embedded Frameworks should include MapboxSceneKit.framework and MapboxMobileEvents.framework.
+1. Ensure the target links the **MetalKit** framework. It is required for loading the `.ktx` textures at runtime.
 
-1. Add your [access token](https://www.mapbox.com/account/access-tokens/) to the `MGLMapboxAccessToken` field in info.plist.
+1. Build and run on a physical device.
 
 ### Volume textures
 
-Sample 3‑D textures are included in `mapbox-volumes/art.scnassets` as `densityVolume.ktx` and `noiseVolume.ktx`.  Any custom cloud data should be provided in **KTX** or **PVR** format.  The `CloudVolume` class loads these files at runtime and expects cubic textures with power‑of‑two dimensions (for example `64x64x64` or `128x128x128`).  Higher resolutions produce smoother clouds at the cost of GPU memory.
+Sample 3‑D textures are included in `mapbox-volumes/art.scnassets` as `densityVolume.ktx` and `noiseVolume.ktx`.  These files are bundled with the app and loaded using `MTKTextureLoader` from **MetalKit**.  Any custom cloud data should be provided in **KTX** or **PVR** format with cubic, power‑of‑two dimensions (for example `64x64x64` or `128x128x128`).  Higher resolutions produce smoother clouds at the cost of GPU memory.
 
 ### Troubleshooting
 
