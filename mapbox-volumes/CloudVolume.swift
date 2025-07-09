@@ -10,10 +10,26 @@
 
 import Foundation
 import SceneKit
+import MetalKit
 
 class CloudVolume: SCNNode {
 
     var debugPlane: SCNNode!
+
+    private var densityVolume: MTLTexture?
+    private var noiseVolume: MTLTexture?
+
+    private func loadVolumeTexture(named name: String) -> MTLTexture? {
+        guard let url = Bundle.main.url(forResource: name, withExtension: nil) else { return nil }
+        guard let device = MTLCreateSystemDefaultDevice() else { return nil }
+
+        let loader = MTKTextureLoader(device: device)
+        let options: [MTKTextureLoader.Option : Any] = [
+            .textureUsage : NSNumber(value: MTLTextureUsage.shaderRead.rawValue),
+            .textureStorageMode : NSNumber(value: MTLStorageMode.private.rawValue)
+        ]
+        return try? loader.newTexture(URL: url, options: options)
+    }
     
     private var minLat: Double!
     private var maxLat: Double!
@@ -65,6 +81,22 @@ class CloudVolume: SCNNode {
         let intImage  = UIImage(named: "art.scnassets/sharpNoise.png")!
         let intImageProperty = SCNMaterialProperty(contents: intImage)
         cloudMaterial.setValue(intImageProperty, forKey: "interferenceTexture")
+
+        // Load volume textures
+        if densityVolume == nil {
+            densityVolume = loadVolumeTexture(named: "art.scnassets/densityVolume.ktx")
+        }
+        if noiseVolume == nil {
+            noiseVolume = loadVolumeTexture(named: "art.scnassets/noiseVolume.ktx")
+        }
+        if let density = densityVolume {
+            let prop = SCNMaterialProperty(contents: density)
+            cloudMaterial.setValue(prop, forKey: "densityVolume")
+        }
+        if let noise = noiseVolume {
+            let prop = SCNMaterialProperty(contents: noise)
+            cloudMaterial.setValue(prop, forKey: "noiseVolume")
+        }
         
         // Set up cloud map
         debugPlane = SCNNode(geometry: SCNPlane(width: 1, height: 1))
