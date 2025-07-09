@@ -22,6 +22,10 @@ Install the Mapbox SceneKit using [Carthage](https://github.com/Carthage/Carthag
 
 1. Add your [access token](https://www.mapbox.com/account/access-tokens/) to the `MGLMapboxAccessToken` field in info.plist.
 
+### Volume textures
+
+Sample 3‑D textures are included in `mapbox-volumes/art.scnassets` as `densityVolume.ktx` and `noiseVolume.ktx`.  Any custom cloud data should be provided in **KTX** or **PVR** format.  The `CloudVolume` class loads these files at runtime and expects cubic textures with power‑of‑two dimensions (for example `64x64x64` or `128x128x128`).  Higher resolutions produce smoother clouds at the cost of GPU memory.
+
 ### Troubleshooting
 
 1. Because the sample uses up-to-date satellite imagery, clouds won't appear on clear days or after dark. To view a specific time of day, you can modify the tile request using [RealEarth's documentation](http://realearth.ssec.wisc.edu/doc/).
