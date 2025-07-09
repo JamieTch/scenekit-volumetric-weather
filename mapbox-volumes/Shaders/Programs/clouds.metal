@@ -95,7 +95,7 @@ float3 IntersectionOnPlane( float3 offsetOrthogonalToPlane, float3 rayDirection)
 ///   - interferenceTexture: texture that creates harsher distortions, tiled and animated
 ///   - densityMap: real cloud data, white is denser cloud cover, black is thinner.
 
-float4 RayMarch(Ray ray, float4 nodePosition, float time, texture2d<float, access::sample> noiseTexture, texture2d<float, access::sample> interferenceTexture, texture2d<float, access::sample> densityMap)
+float4 RayMarch(Ray ray, float4 nodePosition, float time, texture3d<float, access::sample> noiseTexture, texture3d<float, access::sample> interferenceTexture, texture3d<float, access::sample> densityMap)
 {
     float3 initialDirection = ray.direction;
     float3 initialPosition = ray.origin;
@@ -171,30 +171,29 @@ float4 RayMarch(Ray ray, float4 nodePosition, float time, texture2d<float, acces
         float dist = (samplePosition.y - cloudCenterBounds) / cloudSizeVertical;
         float absDist = abs(dist);
         
-        //use node-space coordinates to define UVs, so that the volume responds to positions/scale/rotation changes
-        float2 nodeUV = (samplePosition.xz - nodePosition.xz) / tileScale;
+        //use node-space coordinates in 3D so that the volume responds to positions/scale/rotation changes
+        float3 volumeCoord = (samplePosition.xyz - nodePosition.xyz) / tileScale;
 
-        //cheap modulo here is faster than feeding large uv positions to the sampler
-        float2 moduloNodeUV = nodeUV;
-        moduloNodeUV = moduloNodeUV - floor(moduloNodeUV);
-        
-        //offset the UVs from node center to match normalized texture coordinate space (0-1).
-        nodeUV += 0.5;
-        
+        //cheap modulo here is faster than feeding large positions to the sampler
+        float3 moduloVolumeUV = volumeCoord - floor(volumeCoord);
+
+        //offset from node center to match normalized texture coordinate space (0-1)
+        float3 volumeUV = volumeCoord + 0.5;
+
         //check density using the red component - standard when sampling greyscale images
-        float4 densitySample = densityMap.sample(densitySampler, nodeUV );
+        float4 densitySample = densityMap.sample(densitySampler, volumeUV );
         float density = densitySample.r * cloudDensityModifier;
-        
+
         //animate the noise textures over time
-        float2 softNoiseAnimation = time * 0.01 * windDirection;
-        float2 noiseUV = moduloNodeUV - softNoiseAnimation;
+        float3 softNoiseAnimation = float3(windDirection * 0.01 * time, 0);
+        float3 noiseUV = moduloVolumeUV - softNoiseAnimation;
         float4 softNoiseSample = noiseTexture.sample(softNoiseSampler, noiseUV );
         softNoiseSample.a = softNoiseSample.r;
-        
+
         //create a copy to interfere with the original noise sample, causing clouds to distort over time
-        float2 interferenceAnimation = softNoiseAnimation;
+        float3 interferenceAnimation = softNoiseAnimation;
         interferenceAnimation.x *= -2;
-        float2 interferenceUV = moduloNodeUV + float2(.5,.5) - (interferenceAnimation);
+        float3 interferenceUV = moduloVolumeUV + float3(.5, .5, .5) - interferenceAnimation;
         float4 interferenceSample = interferenceTexture.sample(sharpNoiseSampler, interferenceUV);
         interferenceSample.a = interferenceSample.r;
         
@@ -230,9 +229,9 @@ float4 RayMarch(Ray ray, float4 nodePosition, float time, texture2d<float, acces
 //MARK: - Fragment Function
 fragment half4 cloudFragment(VertexOut in [[stage_in]],
                             constant NodeBuffer& scn_node [[buffer(1)]],
-                            texture2d<float, access::sample> noiseTexture [[texture(0)]],
-                            texture2d<float, access::sample> interferenceTexture [[texture(1)]],
-                            texture2d<float, access:: sample> densityMap [[texture(2)]])
+                            texture3d<float, access::sample> noiseTexture [[texture(0)]],
+                            texture3d<float, access::sample> interferenceTexture [[texture(1)]],
+                            texture3d<float, access:: sample> densityMap [[texture(2)]])
 {
     
     //construct ray pointing into the cloud volume
