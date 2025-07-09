@@ -11,16 +11,12 @@
 
 import UIKit
 import SceneKit
-import MapboxSceneKit
-
 class ViewController: UIViewController, SCNSceneRendererDelegate {
     
     var sceneView: SCNView = SCNView()
     private var scene: SCNScene = SCNScene()
     
     var cloudNode: CloudVolume!
-    var terrainNode: TerrainNode?
-    var terrainNodeScale = SCNVector3(0.0003, 0.0003, 0.0003) // Scale down map (otherwise it's far too big)
     
     // San Francisco
     var minLat = 37.72
@@ -33,7 +29,6 @@ class ViewController: UIViewController, SCNSceneRendererDelegate {
         
         setupSceneView()
         createClouds()
-        createTerrain()
     }
     
     // Set up sceneview with camera and lights
@@ -68,45 +63,4 @@ class ViewController: UIViewController, SCNSceneRendererDelegate {
         scene.rootNode.addChildNode(cloudNode)
     }
     
-    // Create map with terrain and satellite imagery below clouds
-    func createTerrain() {
-        terrainNode = TerrainNode(minLat: minLat, maxLat: maxLat,
-                                  minLon: minLon, maxLon: maxLon)
-        
-        if let terrainNode = terrainNode {
-            terrainNode.scale = terrainNodeScale // Scale down map
-            terrainNode.position = SCNVector3Make(0, -0.15, 0) // Place map slightly below clouds
-            terrainNode.geometry?.materials = defaultMaterials() // Add default materials
-            scene.rootNode.addChildNode(terrainNode)
-            
-            terrainNode.fetchTerrainHeights(minWallHeight: 100.0, enableDynamicShadows: true, progress: { progress, total in
-            }, completion: {
-                NSLog("Terrain load complete")
-            })
-            
-            terrainNode.fetchTerrainTexture("mapbox/satellite-v9", zoom: 14, progress: { progress, total in
-            }, completion: { image in
-                NSLog("Texture load complete")
-                terrainNode.geometry?.materials[4].diffuse.contents = image
-            })
-        }
-    }
-    
-    // Create default materials for each side of the terrain node
-    func defaultMaterials() -> [SCNMaterial] {
-        let groundImage = SCNMaterial()
-        groundImage.diffuse.contents = UIColor.darkGray
-        groundImage.name = "Ground texture"
-        
-        let sideMaterial = SCNMaterial()
-        sideMaterial.diffuse.contents = UIColor.darkGray
-        sideMaterial.isDoubleSided = true
-        sideMaterial.name = "Side"
-        
-        let bottomMaterial = SCNMaterial()
-        bottomMaterial.diffuse.contents = UIColor.black
-        bottomMaterial.name = "Bottom"
-        
-        return [sideMaterial, sideMaterial, sideMaterial, sideMaterial, groundImage, bottomMaterial]
-    }
 }
